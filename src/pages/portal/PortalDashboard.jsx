@@ -89,7 +89,7 @@ export default function PortalDashboard() {
           <div style={{ background: '#16a34a', borderRadius: 8, padding: '6px', display: 'flex' }}>
             <Zap size={16} color="white" />
           </div>
-          <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>KommunalPay</span>
+          <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Kommunal Pay</span>
           <span style={{ color: '#475569', fontSize: 13, marginLeft: 4 }}>Mijoz Portali</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

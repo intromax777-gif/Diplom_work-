@@ -1,5 +1,5 @@
 -- =============================================
--- KommunalPay — Database Schema for Supabase
+-- Kommunal Pay — Database Schema for Supabase
 -- Run this in Supabase SQL Editor
 -- =============================================
 

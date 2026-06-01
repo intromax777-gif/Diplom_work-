@@ -39,7 +39,7 @@ export default function Login() {
               <Zap size={28} color="white" />
             </div>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>KommunalPay</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>Kommunal Pay</h1>
           <p style={{ fontSize: 14, color: '#64748b', marginTop: 6 }}>
             Kommunal xizmatlar billing tizimi
           </p>

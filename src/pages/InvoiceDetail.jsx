@@ -46,7 +46,7 @@ function InvoicePDF({ invoice, client }) {
         {/* Header */}
         <View style={S.header}>
           <View>
-            <Text style={S.companyName}>KommunalPay</Text>
+            <Text style={S.companyName}>Kommunal Pay</Text>
             <Text style={S.sub}>Kommunal Xizmatlar Billing Tizimi</Text>
             <Text style={[S.sub, { marginTop: 2 }]}>Tel: +998 71 123 45 67</Text>
           </View>
@@ -143,7 +143,7 @@ function InvoicePDF({ invoice, client }) {
         </View>
 
         <Text style={S.footer}>
-          Ushbu hujjat "KommunalPay" avtomatlashtirilgan billing tizimi tomonidan yaratilgan. Murojaat: kommunalpay.uz
+          Ushbu hujjat "Kommunal Pay" avtomatlashtirilgan billing tizimi tomonidan yaratilgan. Murojaat: Kommunal Pay.uz
         </Text>
       </Page>
     </Document>

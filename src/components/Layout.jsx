@@ -21,7 +21,7 @@ export default function Layout() {
             <div style={{ background: '#2563eb', borderRadius: 6, padding: '5px', display: 'flex' }}>
               <Zap size={14} color="white" />
             </div>
-            <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>KommunalPay</span>
+            <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>Kommunal Pay</span>
           </div>
         </div>
         <Outlet />

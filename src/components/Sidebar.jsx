@@ -33,7 +33,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <Zap size={18} color="white" />
           </div>
           <div>
-            <div style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>KommunalPay</div>
+            <div style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Kommunal Pay</div>
             <div style={{ color: '#64748b', fontSize: 11, marginTop: 1 }}>Billing System</div>
           </div>
         </div>
