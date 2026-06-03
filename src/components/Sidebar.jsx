@@ -6,11 +6,11 @@ import {
 import { useAuth } from '../context/AuthContext'
 
 const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/clients', icon: Users, label: 'Mijozlar' },
-  { to: '/meters', icon: Gauge, label: 'Hisoblagichlar' },
-  { to: '/tariffs', icon: DollarSign, label: 'Tariflar' },
-  { to: '/invoices', icon: FileText, label: 'Schyot-Fakturalar' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', badge: 0 },
+  { to: '/clients', icon: Users, label: 'Mijozlar', badge: 0 },
+  { to: '/meters', icon: Gauge, label: 'Hisoblagichlar', badge: 0 },
+  { to: '/tariffs', icon: DollarSign, label: 'Tariflar', badge: 0 },
+  { to: '/invoices', icon: FileText, label: 'Schyot-Fakturalar', badge: 0 },
 ]
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -22,6 +22,8 @@ export default function Sidebar({ isOpen, onClose }) {
     navigate('/login')
   }
 
+  const initial = (user?.email || 'A').charAt(0).toUpperCase()
+
   return (
     <div className={`sidebar${isOpen ? ' open' : ''}`}>
       <div className="sidebar-logo">
@@ -32,18 +34,24 @@ export default function Sidebar({ isOpen, onClose }) {
           }}>
             <Zap size={18} color="white" />
           </div>
-          <div>
-            <div style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Kommunal Pay</div>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 1 }}>Billing System</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Kommunal Pay</span>
+              <span style={{
+                fontSize: 9, fontWeight: 700, color: '#94a3b8', background: '#1e293b',
+                padding: '1px 6px', borderRadius: 6, letterSpacing: 0.5
+              }}>
+                v1.0
+              </span>
+            </div>
+            <div style={{ color: '#475569', fontSize: 11, marginTop: 1 }}>Billing System</div>
           </div>
         </div>
       </div>
 
       <nav className="sidebar-nav">
-        <div style={{ fontSize: 10, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, padding: '4px 12px', marginBottom: 6 }}>
-          Asosiy
-        </div>
-        {navItems.map(({ to, icon: Icon, label }) => (
+        <div className="nav-section-label">Asosiy</div>
+        {navItems.map(({ to, icon: Icon, label, badge }) => (
           <NavLink
             key={to}
             to={to}
@@ -51,19 +59,38 @@ export default function Sidebar({ isOpen, onClose }) {
             onClick={onClose}
           >
             <Icon size={17} />
-            {label}
+            <span style={{ flex: 1 }}>{label}</span>
+            {badge > 0 && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, background: '#dc2626', color: 'white',
+                minWidth: 18, height: 18, borderRadius: 9, display: 'flex',
+                alignItems: 'center', justifyContent: 'center', padding: '0 5px'
+              }}>
+                {badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
 
       <div className="sidebar-footer">
-        <div style={{ padding: '6px 12px', marginBottom: 6 }}>
-          <div style={{ fontSize: 11, color: '#475569' }}>Administrator</div>
+        <div className="sidebar-user" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            fontSize: 13, color: '#cbd5e1', fontWeight: 500,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+            width: 34, height: 34, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'white', fontWeight: 700, fontSize: 14, flexShrink: 0
           }}>
-            {user?.email}
+            {initial}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 11, color: '#475569' }}>Administrator</div>
+            <div style={{
+              fontSize: 12.5, color: '#cbd5e1', fontWeight: 500,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+            }}>
+              {user?.email}
+            </div>
           </div>
         </div>
         <button className="nav-item" onClick={handleSignOut}>

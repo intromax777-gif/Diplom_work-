@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Search, Trash2 } from 'lucide-react'
+import { Plus, Search, Trash2, Layers, X, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import Pagination, { PAGE_SIZE } from '../components/Pagination'
+import Spinner from '../components/Spinner'
+import EmptyState from '../components/EmptyState'
 
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr']
 
@@ -24,6 +27,7 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
+  const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -35,6 +39,13 @@ export default function Invoices() {
     due_date: '',
   })
 
+  // Ommaviy schyot holati
+  const [showBulk, setShowBulk] = useState(false)
+  const [bulkForm, setBulkForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() })
+  const [bulkRunning, setBulkRunning] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 })
+  const [bulkResult, setBulkResult] = useState(null)
+
   useEffect(() => { fetchAll() }, [])
 
   useEffect(() => {
@@ -44,6 +55,9 @@ export default function Invoices() {
       setShowModal(true)
     }
   }, [searchParams, clients])
+
+  // Qidiruv/filter o'zgarsa birinchi sahifaga qaytish
+  useEffect(() => { setPage(1) }, [search, filter])
 
   async function markOverdueInvoices() {
     const today = new Date().toISOString().split('T')[0]
@@ -76,10 +90,8 @@ export default function Invoices() {
     fetchAll()
   }
 
-  async function calculatePreview(clientId, month, year) {
-    if (!clientId) { setPreview(null); return }
-    setPreviewLoading(true)
-
+  // ── Bitta mijoz uchun summa hisoblash (ham preview, ham bulk ishlatadi) ──
+  async function computeAmounts(clientId, month, year) {
     const { data: readings } = await supabase
       .from('meter_readings')
       .select('*')
@@ -113,12 +125,19 @@ export default function Invoices() {
       calcAmount('gas'),
     ])
 
-    setPreview({
+    return {
       electricity: elec,
       water,
       gas,
       total: +(elec.amount + water.amount + gas.amount).toFixed(2),
-    })
+    }
+  }
+
+  async function calculatePreview(clientId, month, year) {
+    if (!clientId) { setPreview(null); return }
+    setPreviewLoading(true)
+    const result = await computeAmounts(clientId, month, year)
+    setPreview(result)
     setPreviewLoading(false)
   }
 
@@ -170,6 +189,67 @@ export default function Invoices() {
     fetchAll()
   }
 
+  // ── OMMAVIY SCHYOT YARATISH ──
+  async function runBulkGenerate() {
+    const { month, year } = bulkForm
+    setBulkRunning(true)
+    setBulkResult(null)
+    setBulkProgress({ done: 0, total: clients.length })
+
+    // Bu oy uchun mavjud schyotlar (dublikatni oldini olish)
+    const { data: existingInvoices } = await supabase
+      .from('invoices')
+      .select('client_id')
+      .eq('month', month)
+      .eq('year', year)
+    const existingSet = new Set((existingInvoices || []).map(i => i.client_id))
+
+    const dueDate = new Date(year, month, 15).toISOString().split('T')[0]
+    let created = 0, skipped = 0, noReadings = 0
+
+    for (let i = 0; i < clients.length; i++) {
+      const client = clients[i]
+
+      if (existingSet.has(client.id)) {
+        skipped++
+        setBulkProgress({ done: i + 1, total: clients.length })
+        continue
+      }
+
+      const amounts = await computeAmounts(client.id, month, year)
+      if (amounts.total === 0) {
+        noReadings++
+        setBulkProgress({ done: i + 1, total: clients.length })
+        continue
+      }
+
+      const invoiceNum = `INV-${year}${String(month).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`
+      await supabase.from('invoices').insert({
+        client_id: client.id,
+        invoice_number: invoiceNum,
+        month, year,
+        electricity_amount: amounts.electricity.amount,
+        water_amount: amounts.water.amount,
+        gas_amount: amounts.gas.amount,
+        total_amount: amounts.total,
+        status: 'pending',
+        due_date: dueDate,
+      })
+      created++
+      setBulkProgress({ done: i + 1, total: clients.length })
+    }
+
+    setBulkRunning(false)
+    setBulkResult({ created, skipped, noReadings })
+    fetchAll()
+  }
+
+  function closeBulk() {
+    setShowBulk(false)
+    setBulkResult(null)
+    setBulkProgress({ done: 0, total: 0 })
+  }
+
   const filtered = invoices
     .filter(inv => filter === 'all' || inv.status === filter)
     .filter(inv =>
@@ -177,13 +257,23 @@ export default function Invoices() {
       (inv.clients?.full_name?.toLowerCase() || '').includes(search.toLowerCase())
     )
 
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   return (
     <div>
       <div className="page-header">
-        <h1>Schyot-Fakturalar</h1>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={16} /> Schyot Yaratish
-        </button>
+        <div>
+          <h1>Schyot-Fakturalar</h1>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Schyot-Fakturalar</div>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-outline" onClick={() => setShowBulk(true)}>
+            <Layers size={16} /> Ommaviy Schyot
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={16} /> Schyot Yaratish
+          </button>
+        </div>
       </div>
 
       <div className="page-content">
@@ -212,65 +302,71 @@ export default function Invoices() {
           </div>
 
           {loading ? (
-            <div className="loading">Yuklanmoqda...</div>
+            <Spinner />
           ) : (
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Schyot #</th>
-                    <th>Mijoz</th>
-                    <th>Davr</th>
-                    <th>Elektr</th>
-                    <th>Suv</th>
-                    <th>Gaz</th>
-                    <th>Jami</th>
-                    <th>Holat</th>
-                    <th>Muddati</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
+            <>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
                     <tr>
-                      <td colSpan={10} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 40 }}>
-                        Schyotlar topilmadi
-                      </td>
+                      <th>Schyot #</th>
+                      <th>Mijoz</th>
+                      <th>Davr</th>
+                      <th>Elektr</th>
+                      <th>Suv</th>
+                      <th>Gaz</th>
+                      <th>Jami</th>
+                      <th>Holat</th>
+                      <th>Muddati</th>
+                      <th></th>
                     </tr>
-                  ) : filtered.map(inv => (
-                    <tr key={inv.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/invoices/${inv.id}`)}>
-                      <td style={{ fontWeight: 600, fontFamily: 'monospace', color: 'var(--primary)' }}>
-                        {inv.invoice_number}
-                      </td>
-                      <td style={{ fontWeight: 500 }}>{inv.clients?.full_name}</td>
-                      <td>{MONTHS[inv.month - 1]} {inv.year}</td>
-                      <td>{(inv.electricity_amount || 0).toLocaleString()} so'm</td>
-                      <td>{(inv.water_amount || 0).toLocaleString()} so'm</td>
-                      <td>{(inv.gas_amount || 0).toLocaleString()} so'm</td>
-                      <td style={{ fontWeight: 700 }}>{(inv.total_amount || 0).toLocaleString()} so'm</td>
-                      <td>{statusBadge(inv.status)}</td>
-                      <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                        {inv.due_date ? new Date(inv.due_date).toLocaleDateString('uz-UZ') : '—'}
-                      </td>
-                      <td onClick={e => e.stopPropagation()}>
-                        <button
-                          className="btn btn-sm"
-                          style={{ color: '#dc2626', background: 'none', border: 'none', padding: '4px' }}
-                          onClick={e => deleteInvoice(inv, e)}
-                          title="O'chirish"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginated.length === 0 ? (
+                      <EmptyState colSpan={10} title="Schyotlar topilmadi" />
+                    ) : paginated.map(inv => (
+                      <tr key={inv.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/invoices/${inv.id}`)}>
+                        <td style={{ fontWeight: 600, fontFamily: 'monospace', color: 'var(--primary)' }}>
+                          {inv.invoice_number}
+                        </td>
+                        <td style={{ fontWeight: 500 }}>{inv.clients?.full_name}</td>
+                        <td>{MONTHS[inv.month - 1]} {inv.year}</td>
+                        <td>{(inv.electricity_amount || 0).toLocaleString()} so'm</td>
+                        <td>{(inv.water_amount || 0).toLocaleString()} so'm</td>
+                        <td>{(inv.gas_amount || 0).toLocaleString()} so'm</td>
+                        <td style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>
+                          {(inv.total_amount || 0).toLocaleString()} so'm
+                        </td>
+                        <td>{statusBadge(inv.status)}</td>
+                        <td style={{
+                          fontSize: 13,
+                          color: inv.status === 'overdue' ? '#dc2626' : 'var(--text-secondary)',
+                          fontWeight: inv.status === 'overdue' ? 600 : 400
+                        }}>
+                          {inv.due_date ? new Date(inv.due_date).toLocaleDateString('uz-UZ') : '—'}
+                        </td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <button
+                            className="btn btn-sm"
+                            style={{ color: '#dc2626', background: 'none', border: 'none', padding: '4px' }}
+                            onClick={e => deleteInvoice(inv, e)}
+                            title="O'chirish"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination page={page} totalItems={filtered.length} onChange={setPage} />
+            </>
           )}
         </div>
       </div>
 
+      {/* ── Bitta schyot modal ── */}
       {showModal && (
         <div className="modal-overlay" onClick={() => { setShowModal(false); setPreview(null) }}>
           <div className="modal" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
@@ -326,7 +422,6 @@ export default function Invoices() {
                 />
               </div>
 
-              {/* Preview */}
               {previewLoading && (
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13, padding: 12 }}>
                   Hisoblanmoqda...
@@ -385,6 +480,118 @@ export default function Invoices() {
               >
                 {generating ? 'Yaratilmoqda...' : 'Schyot Yaratish'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Ommaviy schyot modal ── */}
+      {showBulk && (
+        <div className="modal-overlay" onClick={() => !bulkRunning && closeBulk()}>
+          <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Ommaviy Schyot Yaratish</h2>
+              <button className="btn btn-outline btn-sm" disabled={bulkRunning} onClick={closeBulk}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {!bulkResult && (
+                <>
+                  <div style={{
+                    background: '#eff6ff', border: '1px solid #bfdbfe',
+                    borderRadius: 10, padding: '12px 14px', marginBottom: 18, fontSize: 13, color: '#1e40af'
+                  }}>
+                    💡 Tanlangan oy uchun barcha mijozlarga (ko'rsatmasi bor) bir vaqtda schyot yaratiladi. Mavjud schyotlar o'tkazib yuboriladi.
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Oy *</label>
+                      <select
+                        className="form-control"
+                        value={bulkForm.month}
+                        disabled={bulkRunning}
+                        onChange={e => setBulkForm({ ...bulkForm, month: parseInt(e.target.value) })}
+                      >
+                        {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Yil *</label>
+                      <select
+                        className="form-control"
+                        value={bulkForm.year}
+                        disabled={bulkRunning}
+                        onChange={e => setBulkForm({ ...bulkForm, year: parseInt(e.target.value) })}
+                      >
+                        {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 13, color: '#64748b', marginBottom: bulkRunning ? 12 : 0 }}>
+                    Jami mijozlar: <strong>{clients.length}</strong> ta
+                  </div>
+
+                  {bulkRunning && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
+                        <span style={{ color: '#64748b' }}>Yaratilmoqda...</span>
+                        <span style={{ fontWeight: 600 }}>{bulkProgress.done} / {bulkProgress.total}</span>
+                      </div>
+                      <div style={{ height: 8, background: '#e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${bulkProgress.total ? (bulkProgress.done / bulkProgress.total * 100) : 0}%`,
+                          background: 'linear-gradient(90deg, #2563eb, #1d4ed8)',
+                          transition: 'width 0.2s'
+                        }} />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {bulkResult && (
+                <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: '50%', background: '#dcfce7',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+                  }}>
+                    <CheckCircle2 size={30} color="#16a34a" />
+                  </div>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 16 }}>Tayyor!</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: '#f0fdf4', borderRadius: 8, fontSize: 14 }}>
+                      <span style={{ color: '#15803d' }}>✅ Yaratilgan schyotlar</span>
+                      <strong style={{ color: '#15803d' }}>{bulkResult.created} ta</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', borderRadius: 8, fontSize: 14 }}>
+                      <span style={{ color: '#64748b' }}>⏭ Mavjud (o'tkazildi)</span>
+                      <strong style={{ color: '#64748b' }}>{bulkResult.skipped} ta</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: '#fffbeb', borderRadius: 8, fontSize: 14 }}>
+                      <span style={{ color: '#92400e' }}>⚠️ Ko'rsatmasiz mijozlar</span>
+                      <strong style={{ color: '#92400e' }}>{bulkResult.noReadings} ta</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              {!bulkResult ? (
+                <>
+                  <button className="btn btn-outline" disabled={bulkRunning} onClick={closeBulk}>
+                    Bekor qilish
+                  </button>
+                  <button className="btn btn-primary" disabled={bulkRunning || clients.length === 0} onClick={runBulkGenerate}>
+                    {bulkRunning ? 'Yaratilmoqda...' : 'Hisoblash va Yaratish'}
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-primary" onClick={closeBulk}>Yopish</button>
+              )}
             </div>
           </div>
         </div>

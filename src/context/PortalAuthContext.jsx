@@ -126,8 +126,20 @@ export function PortalAuthProvider({ children }) {
     await supabase.auth.signOut()
   }
 
+  // Mijoz o'z profilini yangilaganda chaqiriladi
+  async function updateProfile(fields) {
+    if (!client) return { error: { message: 'Mijoz topilmadi' } }
+    const { error } = await supabase
+      .from('clients')
+      .update(fields)
+      .eq('id', client.id)
+    if (error) return { error }
+    setClient({ ...client, ...fields })
+    return { data: true }
+  }
+
   return (
-    <PortalAuthContext.Provider value={{ user, client, loading, login, register, signOut }}>
+    <PortalAuthContext.Provider value={{ user, client, loading, login, register, signOut, updateProfile }}>
       {children}
     </PortalAuthContext.Provider>
   )

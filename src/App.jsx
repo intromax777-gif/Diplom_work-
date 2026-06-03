@@ -15,6 +15,7 @@ import InvoiceDetail from './pages/InvoiceDetail'
 import PortalLogin from './pages/portal/PortalLogin'
 import PortalRegister from './pages/portal/PortalRegister'
 import PortalDashboard from './pages/portal/PortalDashboard'
+import PortalResetPassword from './pages/portal/PortalResetPassword'
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/portal" element={<Navigate to="/portal/login" replace />} />
         <Route path="/portal/login"    element={<PortalAuthProvider><PortalLogin /></PortalAuthProvider>} />
         <Route path="/portal/register" element={<PortalAuthProvider><PortalRegister /></PortalAuthProvider>} />
+        <Route path="/portal/reset-password" element={<PortalAuthProvider><PortalResetPassword /></PortalAuthProvider>} />
         <Route
           path="/portal/dashboard"
           element={

@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, User, ChevronRight, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import Pagination, { PAGE_SIZE } from '../components/Pagination'
+import Spinner from '../components/Spinner'
+import EmptyState from '../components/EmptyState'
 
 const EMPTY_FORM = { full_name: '', address: '', phone: '', email: '', account_number: '' }
 
@@ -10,12 +13,14 @@ export default function Clients() {
   const [clients, setClients] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [editId, setEditId] = useState(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => { fetchClients() }, [])
+  useEffect(() => { setPage(1) }, [search])
 
   async function fetchClients() {
     const { data } = await supabase
@@ -31,6 +36,8 @@ export default function Clients() {
     c.account_number.toLowerCase().includes(search.toLowerCase()) ||
     c.address.toLowerCase().includes(search.toLowerCase())
   )
+
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave() {
     if (!form.full_name.trim() || !form.address.trim() || !form.account_number.trim()) {
@@ -85,7 +92,10 @@ export default function Clients() {
   return (
     <div>
       <div className="page-header">
-        <h1>Mijozlar</h1>
+        <div>
+          <h1>Mijozlar</h1>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Mijozlar</div>
+        </div>
         <button className="btn btn-primary" onClick={openAdd}>
           <Plus size={16} /> Yangi Mijoz
         </button>
@@ -108,74 +118,84 @@ export default function Clients() {
           </div>
 
           {loading ? (
-            <div className="loading">Yuklanmoqda...</div>
+            <Spinner />
           ) : (
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Hisob Raqami</th>
-                    <th>To'liq Ismi</th>
-                    <th>Manzil</th>
-                    <th>Telefon</th>
-                    <th>Email</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
+            <>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 40 }}>
-                        Mijozlar topilmadi
-                      </td>
+                      <th>Hisob Raqami</th>
+                      <th>To'liq Ismi</th>
+                      <th>Manzil</th>
+                      <th>Telefon</th>
+                      <th>Portal</th>
+                      <th></th>
                     </tr>
-                  ) : filtered.map(client => (
-                    <tr
-                      key={client.id}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => navigate(`/clients/${client.id}`)}
-                    >
-                      <td>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>
-                          {client.account_number}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{
-                            width: 32, height: 32, borderRadius: 8,
-                            background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0
-                          }}>
-                            <User size={15} color="#2563eb" />
+                  </thead>
+                  <tbody>
+                    {paginated.length === 0 ? (
+                      <EmptyState colSpan={6} title="Mijozlar topilmadi" />
+                    ) : paginated.map(client => (
+                      <tr
+                        key={client.id}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate(`/clients/${client.id}`)}
+                      >
+                        <td>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--primary)' }}>
+                            {client.account_number}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 8,
+                              background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <User size={15} color="#2563eb" />
+                            </div>
+                            <span style={{ fontWeight: 500 }}>{client.full_name}</span>
                           </div>
-                          <span style={{ fontWeight: 500 }}>{client.full_name}</span>
-                        </div>
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{client.address}</td>
-                      <td>{client.phone || <span style={{ color: '#cbd5e1' }}>—</span>}</td>
-                      <td>{client.email || <span style={{ color: '#cbd5e1' }}>—</span>}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
-                          <button className="btn btn-outline btn-sm" onClick={e => openEdit(client, e)}>
-                            Tahrirlash
-                          </button>
-                          <button
-                            className="btn btn-sm"
-                            style={{ color: '#dc2626', background: 'none', border: 'none', padding: '4px' }}
-                            onClick={e => handleDelete(client, e)}
-                            title="O'chirish"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                          <ChevronRight size={16} color="#94a3b8" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{client.address}</td>
+                        <td>{client.phone || <span style={{ color: '#cbd5e1' }}>—</span>}</td>
+                        <td>
+                          {client.user_id ? (
+                            <span className="badge badge-paid">Faol</span>
+                          ) : (
+                            <span style={{
+                              display: 'inline-flex', padding: '3px 10px', borderRadius: 20,
+                              fontSize: 11.5, fontWeight: 700, background: '#f1f5f9', color: '#94a3b8'
+                            }}>
+                              Ro'yxatdan o'tmagan
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
+                            <button className="btn btn-outline btn-sm" onClick={e => openEdit(client, e)}>
+                              Tahrirlash
+                            </button>
+                            <button
+                              className="btn btn-sm"
+                              style={{ color: '#dc2626', background: 'none', border: 'none', padding: '4px' }}
+                              onClick={e => handleDelete(client, e)}
+                              title="O'chirish"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                            <ChevronRight size={16} color="#94a3b8" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination page={page} totalItems={filtered.length} onChange={setPage} />
+            </>
           )}
         </div>
       </div>

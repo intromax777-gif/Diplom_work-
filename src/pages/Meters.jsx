@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Plus, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import Pagination, { PAGE_SIZE } from '../components/Pagination'
+import Spinner from '../components/Spinner'
+import EmptyState from '../components/EmptyState'
 
 const SERVICE_TYPES = [
   { value: 'electricity', label: '⚡ Elektr energiya', unit: 'kWh' },
@@ -26,15 +29,16 @@ export default function Meters() {
   const [search, setSearch] = useState('')
   const [filterClient, setFilterClient] = useState('')
   const [filterService, setFilterService] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => { fetchAll() }, [])
+  useEffect(() => { setPage(1) }, [search, filterClient, filterService])
 
   async function fetchAll() {
     const [readingsRes, clientsRes] = await Promise.all([
       supabase.from('meter_readings')
         .select('*, clients(full_name)')
-        .order('created_at', { ascending: false })
-        .limit(60),
+        .order('created_at', { ascending: false }),
       supabase.from('clients')
         .select('id, full_name, account_number')
         .order('full_name')
@@ -73,6 +77,8 @@ export default function Meters() {
     return matchSearch && matchClient && matchService
   })
 
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   async function handleSave() {
     if (!form.client_id || !form.reading_value) {
       alert("Iltimos, barcha maydonlarni to'ldiring")
@@ -105,7 +111,10 @@ export default function Meters() {
   return (
     <div>
       <div className="page-header">
-        <h1>Hisoblagich Ko'rsatmalari</h1>
+        <div>
+          <h1>Hisoblagich Ko'rsatmalari</h1>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Hisoblagichlar</div>
+        </div>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}>
           <Plus size={16} /> Ko'rsatma Kiritish
         </button>
@@ -146,53 +155,52 @@ export default function Meters() {
           </div>
 
           {loading ? (
-            <div className="loading">Yuklanmoqda...</div>
+            <Spinner />
           ) : (
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Mijoz</th>
-                    <th>Xizmat turi</th>
-                    <th>Ko'rsatma</th>
-                    <th>Sana</th>
-                    <th>Oy</th>
-                    <th>Yil</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
+            <>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 40 }}>
-                        Ko'rsatmalar mavjud emas
-                      </td>
+                      <th>Mijoz</th>
+                      <th>Xizmat turi</th>
+                      <th>Ko'rsatma</th>
+                      <th>Sana</th>
+                      <th>Oy</th>
+                      <th>Yil</th>
+                      <th></th>
                     </tr>
-                  ) : filtered.map(r => (
-                    <tr key={r.id}>
-                      <td style={{ fontWeight: 500 }}>{r.clients?.full_name}</td>
-                      <td>{getLabel(r.service_type)}</td>
-                      <td style={{ fontWeight: 600 }}>
-                        {r.reading_value} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{getUnit(r.service_type)}</span>
-                      </td>
-                      <td>{new Date(r.reading_date).toLocaleDateString('uz-UZ')}</td>
-                      <td>{r.month}-oy</td>
-                      <td>{r.year}</td>
-                      <td>
-                        <button
-                          className="btn btn-sm"
-                          style={{ color: '#dc2626', background: 'none', border: 'none', padding: '4px' }}
-                          onClick={() => handleDelete(r.id)}
-                          title="O'chirish"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginated.length === 0 ? (
+                      <EmptyState colSpan={7} title="Ko'rsatmalar mavjud emas" />
+                    ) : paginated.map(r => (
+                      <tr key={r.id}>
+                        <td style={{ fontWeight: 500 }}>{r.clients?.full_name}</td>
+                        <td>{getLabel(r.service_type)}</td>
+                        <td style={{ fontWeight: 600 }}>
+                          {r.reading_value} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{getUnit(r.service_type)}</span>
+                        </td>
+                        <td>{new Date(r.reading_date).toLocaleDateString('uz-UZ')}</td>
+                        <td>{r.month}-oy</td>
+                        <td>{r.year}</td>
+                        <td>
+                          <button
+                            className="btn btn-sm"
+                            style={{ color: '#dc2626', background: 'none', border: 'none', padding: '4px' }}
+                            onClick={() => handleDelete(r.id)}
+                            title="O'chirish"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination page={page} totalItems={filtered.length} onChange={setPage} />
+            </>
           )}
         </div>
       </div>

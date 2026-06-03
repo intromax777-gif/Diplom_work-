@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import {
   Document, Page, Text, View, StyleSheet, PDFDownloadLink
 } from '@react-pdf/renderer'
+import Spinner from '../components/Spinner'
 
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr']
 
@@ -197,7 +198,7 @@ export default function InvoiceDetail() {
     fetchInvoice()
   }
 
-  if (loading) return <div className="loading">Yuklanmoqda...</div>
+  if (loading) return <Spinner />
   if (!invoice) return <div className="loading">Schyot topilmadi</div>
 
   return (
@@ -221,7 +222,7 @@ export default function InvoiceDetail() {
           {invoice.status !== 'paid' && (
             <button className="btn btn-success" onClick={markAsPaid} disabled={marking}>
               <CheckCircle size={15} />
-              {marking ? "Belgilanmoqda..." : "To'langan deb belgilash"}
+              {marking ? "✓ Belgilanmoqda..." : "To'langan deb belgilash"}
             </button>
           )}
 

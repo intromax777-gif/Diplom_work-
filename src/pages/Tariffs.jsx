@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Zap, Droplets, Flame, Edit2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import Spinner from '../components/Spinner'
+
+const formatDate = (d) =>
+  new Date(d).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })
 
 const SERVICE_CONFIG = {
   electricity: { icon: Zap, label: 'Elektr Energiya', unit: 'kWh', color: '#d97706', bg: '#fffbeb' },
@@ -44,12 +48,15 @@ export default function Tariffs() {
     fetchTariffs()
   }
 
-  if (loading) return <div className="loading">Yuklanmoqda...</div>
+  if (loading) return <Spinner />
 
   return (
     <div>
       <div className="page-header">
-        <h1>Tariflar</h1>
+        <div>
+          <h1>Tariflar</h1>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Tariflar</div>
+        </div>
         <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
           Xizmat turlari bo'yicha narxlar
         </span>
@@ -62,7 +69,7 @@ export default function Tariffs() {
             const tariff = tariffs.find(t => t.service_type === type)
             const Icon = config.icon
             return (
-              <div key={type} className="card" style={{ textAlign: 'center' }}>
+              <div key={type} className="card card-hover" style={{ textAlign: 'center' }}>
                 <div style={{
                   width: 68, height: 68, borderRadius: 18, background: config.bg,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -84,7 +91,7 @@ export default function Tariffs() {
                       so'm / {config.unit}
                     </div>
                     <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 20 }}>
-                      Yangilangan: {new Date(tariff.updated_at).toLocaleDateString('uz-UZ')}
+                      Yangilangan: {formatDate(tariff.updated_at)}
                     </div>
                   </>
                 ) : (
@@ -149,7 +156,7 @@ export default function Tariffs() {
                         <span style={{ color: 'var(--text-secondary)', marginLeft: 4 }}>so'm</span>
                       </td>
                       <td style={{ color: 'var(--text-secondary)' }}>
-                        {new Date(t.updated_at).toLocaleDateString('uz-UZ')}
+                        {formatDate(t.updated_at)}
                       </td>
                     </tr>
                   )

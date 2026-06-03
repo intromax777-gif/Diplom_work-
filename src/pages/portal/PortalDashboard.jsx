@@ -3,7 +3,7 @@ import { usePortalAuth } from '../../context/PortalAuthContext'
 import { supabase } from '../../lib/supabase'
 import {
   Zap, LogOut, User, MapPin, Phone, Mail,
-  CreditCard, FileText, CheckCircle, AlertTriangle, Clock, X
+  CreditCard, FileText, CheckCircle, AlertTriangle, Clock, X, Pencil
 } from 'lucide-react'
 
 // ── Click to'lov sozlamalari (credentials kelganda o'zgartiring) ──
@@ -22,13 +22,51 @@ function statusInfo(status) {
 }
 
 export default function PortalDashboard() {
-  const { client, signOut } = usePortalAuth()
+  const { client, signOut, updateProfile } = usePortalAuth()
   const [invoices, setInvoices]   = useState([])
   const [loading, setLoading]     = useState(true)
   const [payModal, setPayModal]   = useState(null)   // invoice to pay
   const [paying, setPaying]       = useState(false)
 
+  // Profil tahrirlash holati
+  const [showEdit, setShowEdit]   = useState(false)
+  const [editForm, setEditForm]   = useState({ full_name: '', address: '', phone: '', email: '' })
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [editError, setEditError] = useState('')
+
   useEffect(() => { if (client) fetchInvoices() }, [client])
+
+  function openEditProfile() {
+    setEditForm({
+      full_name: client?.full_name || '',
+      address: client?.address || '',
+      phone: client?.phone || '',
+      email: client?.email || '',
+    })
+    setEditError('')
+    setShowEdit(true)
+  }
+
+  async function saveProfile() {
+    if (!editForm.full_name.trim() || !editForm.address.trim()) {
+      setEditError("Ism va manzil to'ldirilishi shart")
+      return
+    }
+    setSavingProfile(true)
+    setEditError('')
+    const { error } = await updateProfile({
+      full_name: editForm.full_name.trim(),
+      address: editForm.address.trim(),
+      phone: editForm.phone.trim(),
+      email: editForm.email.trim(),
+    })
+    setSavingProfile(false)
+    if (error) {
+      setEditError(error.message || "Saqlashda xatolik yuz berdi")
+    } else {
+      setShowEdit(false)
+    }
+  }
 
   async function fetchInvoices() {
     // Muddati o'tganlarni avtomatik yangilash
@@ -115,10 +153,13 @@ export default function PortalDashboard() {
               <div style={{ width: 48, height: 48, borderRadius: 12, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <User size={24} color="#16a34a" />
               </div>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 18 }}>{client?.full_name}</div>
                 <div style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace' }}>{client?.account_number}</div>
               </div>
+              <button className="btn btn-outline btn-sm" onClick={openEditProfile}>
+                <Pencil size={13} /> Tahrirlash
+              </button>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
               {[
@@ -177,63 +218,134 @@ export default function PortalDashboard() {
           {loading ? (
             <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Yuklanmoqda...</div>
           ) : invoices.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
-              Hozircha schyotlar yo'q
+            <div style={{ textAlign: 'center', padding: 56, color: '#94a3b8' }}>
+              <FileText size={40} style={{ margin: '0 auto 12px', opacity: 0.3, display: 'block' }} />
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Schyotlar yo'q</div>
+              <div style={{ fontSize: 13 }}>Schyotlar paydo bo'lganda bu yerda ko'rinadi</div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {invoices.map(inv => {
                 const st = statusInfo(inv.status)
                 const StatusIcon = st.Icon
+                const hasBreakdown = inv.electricity_amount > 0 || inv.water_amount > 0 || inv.gas_amount > 0
                 return (
                   <div key={inv.id} style={{
-                    border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px 20px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    flexWrap: 'wrap', gap: 12,
-                    borderLeft: `4px solid ${st.color}`
+                    border: '1px solid #e2e8f0', borderRadius: 14,
+                    borderLeft: `4px solid ${st.color}`,
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
                   }}>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center', flex: 1 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 10, background: st.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <StatusIcon size={20} color={st.color} />
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 14 }}>{inv.invoice_number}</div>
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                          {MONTHS[inv.month - 1]} {inv.year}
-                          {inv.due_date && inv.status !== 'paid' && (
-                            <span style={{ marginLeft: 8 }}>
-                              · To'lov muddati: {new Date(inv.due_date).toLocaleDateString('uz-UZ')}
-                            </span>
-                          )}
-                          {inv.paid_at && (
-                            <span style={{ marginLeft: 8 }}>
-                              · To'langan: {new Date(inv.paid_at).toLocaleDateString('uz-UZ')}
-                            </span>
-                          )}
+                    {/* Asosiy qator */}
+                    <div style={{
+                      padding: '16px 20px',
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: 'space-between', flexWrap: 'wrap', gap: 12
+                    }}>
+                      <div style={{ display: 'flex', gap: 14, alignItems: 'center', flex: 1 }}>
+                        <div style={{
+                          width: 42, height: 42, borderRadius: 10, background: st.bg,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                        }}>
+                          <StatusIcon size={20} color={st.color} />
                         </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: 14 }}>
+                              {inv.invoice_number}
+                            </span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                              borderRadius: 12, background: st.bg, color: st.color
+                            }}>
+                              {st.label}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
+                            📅 {MONTHS[inv.month - 1]} {inv.year}
+                            {inv.due_date && inv.status !== 'paid' && (
+                              <span style={{ marginLeft: 8, color: inv.status === 'overdue' ? '#dc2626' : '#64748b' }}>
+                                · Muddati: {new Date(inv.due_date).toLocaleDateString('uz-UZ')}
+                              </span>
+                            )}
+                            {inv.paid_at && (
+                              <span style={{ marginLeft: 8, color: '#16a34a' }}>
+                                · To'langan: {new Date(inv.paid_at).toLocaleDateString('uz-UZ')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontWeight: 800, fontSize: 18, color: '#0f172a' }}>
+                            {fmt(inv.total_amount)}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#94a3b8' }}>Jami to'lov</div>
+                        </div>
+                        {inv.status !== 'paid' && (
+                          <button
+                            className="btn btn-success"
+                            onClick={() => openClickPayment(inv)}
+                          >
+                            💳 To'lash
+                          </button>
+                        )}
+                        {inv.status === 'paid' && (
+                          <div style={{
+                            width: 36, height: 36, borderRadius: '50%', background: '#dcfce7',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}>
+                            <CheckCircle size={20} color="#16a34a" />
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 700, fontSize: 16 }}>{fmt(inv.total_amount)}</div>
-                        <span style={{
-                          fontSize: 11, fontWeight: 600, padding: '2px 8px',
-                          borderRadius: 12, background: st.bg, color: st.color
-                        }}>
-                          {st.label}
-                        </span>
+                    {/* Breakdown: elektr/suv/gaz */}
+                    {hasBreakdown && (
+                      <div style={{
+                        borderTop: '1px solid #f1f5f9',
+                        background: '#f8fafc',
+                        padding: '12px 20px',
+                        display: 'flex', gap: 24, flexWrap: 'wrap'
+                      }}>
+                        {inv.electricity_amount > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 16 }}>⚡</span>
+                            <div>
+                              <div style={{ fontSize: 11, color: '#94a3b8' }}>Elektr</div>
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                                {inv.electricity_amount.toLocaleString()} so'm
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {inv.water_amount > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 16 }}>💧</span>
+                            <div>
+                              <div style={{ fontSize: 11, color: '#94a3b8' }}>Suv</div>
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                                {inv.water_amount.toLocaleString()} so'm
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {inv.gas_amount > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 16 }}>🔥</span>
+                            <div>
+                              <div style={{ fontSize: 11, color: '#94a3b8' }}>Gaz</div>
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                                {inv.gas_amount.toLocaleString()} so'm
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {inv.status !== 'paid' && (
-                        <button
-                          className="btn"
-                          style={{ background: '#16a34a', color: 'white', fontWeight: 600, whiteSpace: 'nowrap' }}
-                          onClick={() => openClickPayment(inv)}
-                        >
-                          Click orqali to'lash
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 )
               })}
@@ -284,6 +396,81 @@ export default function PortalDashboard() {
               <button className="btn btn-outline" onClick={() => setPayModal(null)}>Bekor qilish</button>
               <button className="btn btn-success" onClick={simulatePay} disabled={paying}>
                 {paying ? 'Amalga oshirilmoqda...' : '✓ To\'landi (test)'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Profil tahrirlash modal ── */}
+      {showEdit && (
+        <div className="modal-overlay" onClick={() => setShowEdit(false)}>
+          <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Profilni Tahrirlash</h2>
+              <button className="btn btn-outline btn-sm" onClick={() => setShowEdit(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              {editError && (
+                <div style={{
+                  background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca',
+                  padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16
+                }}>
+                  {editError}
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label">To'liq ismi *</label>
+                <input
+                  className="form-control"
+                  value={editForm.full_name}
+                  onChange={e => setEditForm({ ...editForm, full_name: e.target.value })}
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Manzil *</label>
+                <input
+                  className="form-control"
+                  value={editForm.address}
+                  onChange={e => setEditForm({ ...editForm, address: e.target.value })}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Telefon</label>
+                  <input
+                    className="form-control"
+                    placeholder="+998 90 123 45 67"
+                    value={editForm.phone}
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    placeholder="email@example.com"
+                    value={editForm.email}
+                    onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                fontSize: 12, color: '#94a3b8', marginTop: 4
+              }}>
+                Hisob raqami ({client?.account_number}) o'zgartirib bo'lmaydi.
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setShowEdit(false)}>Bekor qilish</button>
+              <button className="btn btn-success" onClick={saveProfile} disabled={savingProfile}>
+                {savingProfile ? 'Saqlanmoqda...' : 'Saqlash'}
               </button>
             </div>
           </div>

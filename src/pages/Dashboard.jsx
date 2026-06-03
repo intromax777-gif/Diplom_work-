@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, FileText, DollarSign, AlertTriangle, TrendingUp } from 'lucide-react'
+import { Users, FileText, DollarSign, AlertTriangle, TrendingUp, FileDown, X, UserCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
 } from 'recharts'
+import { exportInvoices, exportClients, exportMonthlyReport } from '../lib/reports'
+import Spinner from '../components/Spinner'
 
 const MONTHS_SHORT = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek']
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr']
@@ -24,10 +26,17 @@ const statusBadge = (status) => {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [stats, setStats] = useState({ clients: 0, pending: 0, overdue: 0, revenue: 0 })
+  const [stats, setStats] = useState({ clients: 0, pending: 0, overdue: 0, revenue: 0, portalUsers: 0 })
   const [recentInvoices, setRecentInvoices] = useState([])
+  const [allInvoices, setAllInvoices] = useState([])
+  const [allClients, setAllClients] = useState([])
   const [monthlyData, setMonthlyData] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Hisobot modal holati
+  const [showReport, setShowReport] = useState(false)
+  const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1)
+  const [reportYear, setReportYear] = useState(new Date().getFullYear())
 
   useEffect(() => { fetchData() }, [])
 
@@ -41,20 +50,24 @@ export default function Dashboard() {
         .not('due_date', 'is', null)
 
       const [clientsRes, invoicesRes] = await Promise.all([
-        supabase.from('clients').select('id', { count: 'exact' }),
+        supabase.from('clients').select('*'),
         supabase.from('invoices')
           .select('*, clients(full_name, account_number)')
           .order('created_at', { ascending: false })
       ])
 
+      const clients = clientsRes.data || []
       const invoices = invoicesRes.data || []
       const pending = invoices.filter(i => i.status === 'pending').length
       const overdue = invoices.filter(i => i.status === 'overdue').length
       const revenue = invoices
         .filter(i => i.status === 'paid')
         .reduce((sum, i) => sum + (i.total_amount || 0), 0)
+      const portalUsers = clients.filter(c => c.user_id).length
 
-      setStats({ clients: clientsRes.count || 0, pending, overdue, revenue })
+      setStats({ clients: clients.length, pending, overdue, revenue, portalUsers })
+      setAllClients(clients)
+      setAllInvoices(invoices)
       setRecentInvoices(invoices.slice(0, 6))
 
       // Last 6 months chart
@@ -76,42 +89,53 @@ export default function Dashboard() {
     }
   }
 
-  if (loading) return <div className="loading">Dashboard yuklanmoqda...</div>
+  if (loading) return <Spinner text="Dashboard yuklanmoqda..." />
 
   return (
     <div>
       <div className="page-header">
-        <h1>Dashboard</h1>
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-          {new Date().toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })}
-        </span>
+        <div>
+          <h1>Dashboard</h1>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Dashboard</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            {new Date().toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </span>
+          <button className="btn btn-outline" onClick={() => setShowReport(true)}>
+            <FileDown size={16} /> Hisobot
+          </button>
+        </div>
       </div>
 
       <div className="page-content">
         {/* Stat cards */}
         <div className="stat-grid">
-          <div className="stat-card">
+          <div className="stat-card blue">
             <div className="stat-icon" style={{ background: '#eff6ff' }}>
               <Users size={20} color="#2563eb" />
             </div>
             <div className="stat-label">Jami Mijozlar</div>
             <div className="stat-value">{stats.clients}</div>
+            <div style={{ fontSize: 12, color: '#16a34a', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <UserCheck size={13} /> {stats.portalUsers} ta portalda faol
+            </div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card green">
             <div className="stat-icon" style={{ background: '#f0fdf4' }}>
               <DollarSign size={20} color="#16a34a" />
             </div>
             <div className="stat-label">Jami Tushumlar</div>
-            <div className="stat-value" style={{ fontSize: 18 }}>{fmt(stats.revenue)}</div>
+            <div className="stat-value" style={{ fontSize: 20 }}>{fmt(stats.revenue)}</div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card amber">
             <div className="stat-icon" style={{ background: '#fffbeb' }}>
               <FileText size={20} color="#d97706" />
             </div>
             <div className="stat-label">Kutilayotgan</div>
             <div className="stat-value">{stats.pending}</div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card red">
             <div className="stat-icon" style={{ background: '#fef2f2' }}>
               <AlertTriangle size={20} color="#dc2626" />
             </div>
@@ -144,7 +168,7 @@ export default function Dashboard() {
           <div className="card">
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Schyot holatlari</h3>
             {[
-              { label: "To'langan", count: recentInvoices.filter(i => i.status === 'paid').length, cls: 'badge-paid' },
+              { label: "To'langan", count: allInvoices.filter(i => i.status === 'paid').length, cls: 'badge-paid' },
               { label: 'Kutilmoqda', count: stats.pending, cls: 'badge-pending' },
               { label: "Muddati o'tgan", count: stats.overdue, cls: 'badge-overdue' },
             ].map(({ label, count, cls }) => (
@@ -188,7 +212,16 @@ export default function Dashboard() {
                 ) : recentInvoices.map(inv => (
                   <tr key={inv.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/invoices/${inv.id}`)}>
                     <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>{inv.invoice_number}</td>
-                    <td>{inv.clients?.full_name}</td>
+                    <td onClick={e => e.stopPropagation()}>
+                      {inv.client_id ? (
+                        <span
+                          style={{ color: 'var(--primary)', fontWeight: 500, cursor: 'pointer' }}
+                          onClick={() => navigate(`/clients/${inv.client_id}`)}
+                        >
+                          {inv.clients?.full_name}
+                        </span>
+                      ) : inv.clients?.full_name}
+                    </td>
                     <td>{MONTHS[inv.month - 1]} {inv.year}</td>
                     <td style={{ fontWeight: 600 }}>{fmt(inv.total_amount)}</td>
                     <td>{statusBadge(inv.status)}</td>
@@ -199,6 +232,67 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── Hisobot modal ── */}
+      {showReport && (
+        <div className="modal-overlay" onClick={() => setShowReport(false)}>
+          <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Hisobot Yuklab Olish</h2>
+              <button className="btn btn-outline btn-sm" onClick={() => setShowReport(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              {/* Schyotlar */}
+              <div style={{
+                border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, marginBottom: 14,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>Schyotlar ro'yxati</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Barcha schyotlar ({allInvoices.length} ta)</div>
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={() => exportInvoices(allInvoices)}>
+                  <FileDown size={14} /> Yuklab olish
+                </button>
+              </div>
+
+              {/* Mijozlar */}
+              <div style={{
+                border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, marginBottom: 14,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>Mijozlar ro'yxati</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Barcha mijozlar ({allClients.length} ta)</div>
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={() => exportClients(allClients)}>
+                  <FileDown size={14} /> Yuklab olish
+                </button>
+              </div>
+
+              {/* Oylik hisobot */}
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Oylik hisobot</div>
+                <div className="form-row" style={{ marginBottom: 12 }}>
+                  <select className="form-control" value={reportMonth} onChange={e => setReportMonth(parseInt(e.target.value))}>
+                    {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                  </select>
+                  <select className="form-control" value={reportYear} onChange={e => setReportYear(parseInt(e.target.value))}>
+                    {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <button
+                  className="btn btn-primary w-full"
+                  style={{ justifyContent: 'center' }}
+                  onClick={() => exportMonthlyReport(allInvoices, reportMonth, reportYear)}
+                >
+                  <FileDown size={14} /> {MONTHS[reportMonth - 1]} {reportYear} hisobotini yuklab olish
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
