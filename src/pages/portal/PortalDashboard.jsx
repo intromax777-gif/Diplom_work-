@@ -69,9 +69,9 @@ export default function PortalDashboard() {
   }
 
   async function fetchInvoices() {
-    // Muddati o'tganlarni avtomatik yangilash
+    // Muddati o'tganlarni avtomatik yangilash (fire-and-forget)
     const today = new Date().toISOString().split('T')[0]
-    await supabase.from('invoices')
+    supabase.from('invoices')
       .update({ status: 'overdue' })
       .eq('client_id', client.id)
       .eq('status', 'pending')

@@ -4,6 +4,7 @@ import {
   FileText, LogOut, Zap
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import Notifications from './Notifications'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', badge: 0 },
@@ -71,6 +72,7 @@ export default function Sidebar({ isOpen, onClose }) {
             )}
           </NavLink>
         ))}
+        <Notifications onNavigate={onClose} />
       </nav>
 
       <div className="sidebar-footer">

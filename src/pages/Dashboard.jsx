@@ -43,7 +43,8 @@ export default function Dashboard() {
   async function fetchData() {
     try {
       const today = new Date().toISOString().split('T')[0]
-      await supabase.from('invoices')
+      // Overdue update: kutmasdan yuboramiz (fire-and-forget)
+      supabase.from('invoices')
         .update({ status: 'overdue' })
         .eq('status', 'pending')
         .lt('due_date', today)
@@ -53,7 +54,7 @@ export default function Dashboard() {
         supabase.from('clients').select('*'),
         supabase.from('invoices')
           .select('*, clients(full_name, account_number)')
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false }),
       ])
 
       const clients = clientsRes.data || []
