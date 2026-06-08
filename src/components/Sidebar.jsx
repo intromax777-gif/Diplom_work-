@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import Notifications from './Notifications'
 
 const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Bosh Sahifa', badge: 0 },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Asosiy Panel', badge: 0 },
   { to: '/clients', icon: Users, label: 'Mijozlar', badge: 0 },
   { to: '/meters', icon: Gauge, label: 'Hisoblagichlar', badge: 0 },
   { to: '/tariffs', icon: DollarSign, label: 'Tariflar', badge: 0 },
