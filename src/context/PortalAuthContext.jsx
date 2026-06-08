@@ -110,10 +110,16 @@ export function PortalAuthProvider({ children }) {
     if (authError) return { error: authError }
 
     // Client jadvalida user_id ni saqlash
-    await supabase
+    const { error: updateError } = await supabase
       .from('clients')
       .update({ user_id: authData.user.id })
       .eq('id', existingClient.id)
+
+    if (updateError) {
+      // Auth user yaratildi lekin client bog'lanmadi — auth userni o'chirib xato qaytaramiz
+      await supabase.auth.signOut()
+      return { error: { message: "Hisob bog'lashda xatolik. Iltimos qayta urinib ko'ring." } }
+    }
 
     setUser(authData.user)
     setClient({ ...existingClient, user_id: authData.user.id })
