@@ -343,7 +343,7 @@ export default function Invoices() {
                           color: inv.status === 'overdue' ? '#dc2626' : 'var(--text-secondary)',
                           fontWeight: inv.status === 'overdue' ? 600 : 400
                         }}>
-                          {inv.due_date ? new Date(inv.due_date).toLocaleDateString('uz-UZ') : '—'}
+                          {inv.due_date ? new Date(inv.due_date).toLocaleDateString('ru-RU') : '—'}
                         </td>
                         <td onClick={e => e.stopPropagation()}>
                           <button

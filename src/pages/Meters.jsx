@@ -181,7 +181,7 @@ export default function Meters() {
                         <td style={{ fontWeight: 600 }}>
                           {r.reading_value} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{getUnit(r.service_type)}</span>
                         </td>
-                        <td>{new Date(r.reading_date).toLocaleDateString('uz-UZ')}</td>
+                        <td>{new Date(r.reading_date).toLocaleDateString('ru-RU')}</td>
                         <td>{r.month}-oy</td>
                         <td>{r.year}</td>
                         <td>
@@ -247,7 +247,7 @@ export default function Meters() {
                 }}>
                   📊 Oldingi ko'rsatma: <strong>{prevReading.reading_value} {getUnit(form.service_type)}</strong>
                   <span style={{ color: 'var(--text-secondary)', marginLeft: 8 }}>
-                    ({new Date(prevReading.reading_date).toLocaleDateString('uz-UZ')})
+                    ({new Date(prevReading.reading_date).toLocaleDateString('ru-RU')})
                   </span>
                 </div>
               )}

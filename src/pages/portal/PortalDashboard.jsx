@@ -13,7 +13,7 @@ const RETURN_URL = window.location.origin + '/portal/dashboard'
 
 const MONTHS = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentyabr','Oktyabr','Noyabr','Dekabr']
 
-const fmt = (n) => `${Number(n || 0).toLocaleString('uz-UZ')} so'm`
+const fmt = (n) => `${Math.round(Number(n || 0)).toLocaleString('uz-UZ')} so'm`
 
 function statusInfo(status) {
   if (status === 'paid')    return { label: "To'langan",      color: '#16a34a', bg: '#dcfce7', Icon: CheckCircle }
@@ -265,12 +265,12 @@ export default function PortalDashboard() {
                             📅 {MONTHS[inv.month - 1]} {inv.year}
                             {inv.due_date && inv.status !== 'paid' && (
                               <span style={{ marginLeft: 8, color: inv.status === 'overdue' ? '#dc2626' : '#64748b' }}>
-                                · Muddati: {new Date(inv.due_date).toLocaleDateString('uz-UZ')}
+                                · Muddati: {new Date(inv.due_date).toLocaleDateString('ru-RU')}
                               </span>
                             )}
                             {inv.paid_at && (
                               <span style={{ marginLeft: 8, color: '#16a34a' }}>
-                                · To'langan: {new Date(inv.paid_at).toLocaleDateString('uz-UZ')}
+                                · To'langan: {new Date(inv.paid_at).toLocaleDateString('ru-RU')}
                               </span>
                             )}
                           </div>
@@ -374,7 +374,7 @@ export default function PortalDashboard() {
                 {[
                   ['Schyot raqami', payModal.invoice_number],
                   ['Davr', `${MONTHS[payModal.month - 1]} ${payModal.year}`],
-                  ['To\'lov muddati', payModal.due_date ? new Date(payModal.due_date).toLocaleDateString('uz-UZ') : '—'],
+                  ['To\'lov muddati', payModal.due_date ? new Date(payModal.due_date).toLocaleDateString('ru-RU') : '—'],
                 ].map(([l, v]) => (
                   <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
                     <span style={{ color: '#64748b' }}>{l}</span>

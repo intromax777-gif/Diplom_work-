@@ -33,7 +33,7 @@ export function exportInvoices(invoices) {
     'Jami (so\'m)': inv.total_amount || 0,
     'Holat': STATUS_LABEL[inv.status] || inv.status,
     'To\'lov muddati': inv.due_date || '',
-    'To\'langan sana': inv.paid_at ? new Date(inv.paid_at).toLocaleDateString('uz-UZ') : '',
+    'To\'langan sana': inv.paid_at ? new Date(inv.paid_at).toLocaleDateString('ru-RU') : '',
   }))
   if (rows.length === 0) rows.push({ 'Schyot #': 'Ma\'lumot yo\'q' })
   downloadSheet(rows, 'Schyotlar', `KommunalPay_Schyotlar_${new Date().getFullYear()}.xlsx`)

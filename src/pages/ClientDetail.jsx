@@ -188,7 +188,7 @@ export default function ClientDetail() {
                         <td style={{ fontWeight: 600 }}>
                           {r.reading_value} {SERVICE_UNITS[r.service_type]}
                         </td>
-                        <td>{new Date(r.reading_date).toLocaleDateString('uz-UZ')}</td>
+                        <td>{new Date(r.reading_date).toLocaleDateString('ru-RU')}</td>
                         <td style={{ color: 'var(--text-secondary)' }}>{r.month}-oy, {r.year}</td>
                       </tr>
                     ))}

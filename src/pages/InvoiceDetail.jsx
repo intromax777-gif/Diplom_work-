@@ -275,9 +275,9 @@ export default function InvoiceDetail() {
             {[
               ['Schyot raqami', invoice.invoice_number],
               ['Hisob davri', `${MONTHS[invoice.month - 1]} ${invoice.year}`],
-              ['Yaratilgan sana', new Date(invoice.created_at).toLocaleDateString('uz-UZ')],
-              ["To'lov muddati", invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('uz-UZ') : '—'],
-              ["To'langan sana", invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString('uz-UZ') : '—'],
+              ['Yaratilgan sana', new Date(invoice.created_at).toLocaleDateString('ru-RU')],
+              ["To'lov muddati", invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('ru-RU') : '—'],
+              ["To'langan sana", invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString('ru-RU') : '—'],
             ].map(([label, value]) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>

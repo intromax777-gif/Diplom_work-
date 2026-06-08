@@ -12,7 +12,7 @@ import Spinner from '../components/Spinner'
 const MONTHS_SHORT = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek']
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr']
 
-const fmt = (n) => `${Number(n || 0).toLocaleString('uz-UZ')} so'm`
+const fmt = (n) => `${Math.round(Number(n || 0)).toLocaleString('uz-UZ')} so'm`
 
 const statusBadge = (status) => {
   const map = {
@@ -101,7 +101,7 @@ export default function Dashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            {new Date().toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
           </span>
           <button className="btn btn-outline" onClick={() => setShowReport(true)}>
             <FileDown size={16} /> Hisobot
