@@ -11,7 +11,7 @@ const navItems = [
   { to: '/clients', icon: Users, label: 'Mijozlar', badge: 0 },
   { to: '/meters', icon: Gauge, label: 'Hisoblagichlar', badge: 0 },
   { to: '/tariffs', icon: DollarSign, label: 'Tariflar', badge: 0 },
-  { to: '/invoices', icon: FileText, label: 'Schyot-Fakturalar', badge: 0 },
+  { to: '/invoices', icon: FileText, label: "To'lov Hujjatlari", badge: 0 },
 ]
 
 export default function Sidebar({ isOpen, onClose }) {

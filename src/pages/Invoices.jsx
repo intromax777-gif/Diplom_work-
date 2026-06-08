@@ -263,8 +263,8 @@ export default function Invoices() {
     <div>
       <div className="page-header">
         <div>
-          <h1>Schyot-Fakturalar</h1>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Schyot-Fakturalar</div>
+          <h1>To'lov Hujjatlari</h1>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › To'lov Hujjatlari</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-outline" onClick={() => setShowBulk(true)}>
