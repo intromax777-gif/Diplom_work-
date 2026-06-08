@@ -112,7 +112,7 @@ export default function Meters() {
     <div>
       <div className="page-header">
         <div>
-          <h1>Hisoblagich Ko'rsatmalari</h1>
+          <h1>Hisoblagichlar</h1>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Hisoblagichlar</div>
         </div>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}>

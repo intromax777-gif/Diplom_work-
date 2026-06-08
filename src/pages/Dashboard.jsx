@@ -90,14 +90,14 @@ export default function Dashboard() {
     }
   }
 
-  if (loading) return <Spinner text="Dashboard yuklanmoqda..." />
+  if (loading) return <Spinner text="Bosh sahifa yuklanmoqda..." />
 
   return (
     <div>
       <div className="page-header">
         <div>
-          <h1>Dashboard</h1>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Dashboard</div>
+          <h1>Bosh Sahifa</h1>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>KommunalPay › Bosh Sahifa</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
